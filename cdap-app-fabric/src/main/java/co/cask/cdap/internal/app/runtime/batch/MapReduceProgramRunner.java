@@ -49,6 +49,7 @@ import co.cask.cdap.internal.lang.Reflections;
 import co.cask.cdap.proto.Id;
 import co.cask.cdap.proto.ProgramRunStatus;
 import co.cask.cdap.proto.ProgramType;
+import co.cask.cdap.security.spi.authentication.SecurityRequestContext;
 import co.cask.tephra.TransactionSystemClient;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Throwables;
@@ -181,10 +182,10 @@ public class MapReduceProgramRunner extends AbstractProgramRunnerWithPlugin {
       // note: this sets logging context on the thread level
       LoggingContextAccessor.setLoggingContext(context.getLoggingContext());
 
-      final Service mapReduceRuntimeService = new MapReduceRuntimeService(injector, cConf, hConf, mapReduce, spec,
-                                                                          context, program.getJarLocation(),
-                                                                          locationFactory, streamAdmin,
-                                                                          txSystemClient, usageRegistry);
+      Service mapReduceRuntimeService = new MapReduceRuntimeService(injector, cConf, hConf, mapReduce, spec,
+                                                                    context, program.getJarLocation(),
+                                                                    locationFactory, streamAdmin,
+                                                                    txSystemClient, usageRegistry);
       mapReduceRuntimeService.addListener(
         createRuntimeServiceListener(program, runId, closeables, arguments, options.getUserArguments()),
         Threads.SAME_THREAD_EXECUTOR);
@@ -197,11 +198,15 @@ public class MapReduceProgramRunner extends AbstractProgramRunnerWithPlugin {
       // runner, which is probably the yarn user. This may cause permissions issues if the program
       // tries to access cdap data. For example, writing to a FileSet will fail, as the yarn user will
       // be running the job, but the data directory will be owned by cdap.
+      // TODO: don't we have the same concern for workers or services?
       if (MapReduceTaskContextProvider.isLocal(hConf) || UserGroupInformation.isSecurityEnabled()) {
-        LOG.info("Current user: {}", UserGroupInformation.getCurrentUser().getUserName());
-        LOG.info("Starting as user: {}", cConf.get(Constants.CFG_HDFS_USER));
-//        mapReduceRuntimeService.start();
-        ProgramRunners.startAsUser(cConf.get(Constants.CFG_HDFS_USER), mapReduceRuntimeService);
+//        LOG.info("Options#CFG_HDFS_USER: {}", options.getArguments().getOption(Constants.CFG_HDFS_USER));
+        mapReduceRuntimeService.start();
+        // this doesn't seem to be working... (GSS?)
+//        ProgramRunners.startAsProxyUser(cConf.get(Constants.CFG_HDFS_USER), mapReduceRuntimeService);
+        // this launches Hadoop MR as 'ali', but has hbase issues. container_tokens doesn't have hbase tokens in it
+//        ProgramRunners.startAsProxyUser(options.getArguments().getOption(Constants.CFG_HDFS_USER),
+//                                        mapReduceRuntimeService);
       } else {
         ProgramRunners.startAsUser(cConf.get(Constants.CFG_HDFS_USER), mapReduceRuntimeService);
       }
@@ -213,7 +218,7 @@ public class MapReduceProgramRunner extends AbstractProgramRunnerWithPlugin {
   }
 
   /**
-   * Creates a service listener to reactor on state changes on {@link MapReduceRuntimeService}.
+   * Creates a service listener to react to state changes on {@link MapReduceRuntimeService}.
    */
   private Service.Listener createRuntimeServiceListener(final Program program, final RunId runId,
                                                         final Iterable<Closeable> closeables,

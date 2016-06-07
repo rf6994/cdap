@@ -128,7 +128,8 @@ import javax.annotation.Nullable;
 /**
  * Driver class for starting all master services.
  * AppFabricHttpService
- * TwillRunnables: MetricsProcessor, MetricsHttp, LogSaver, TransactionService, StreamHandler.
+ * TwillRunnables: MetricsProcessor, MetricsHttp, LogSaver, TransactionService, StreamHandler,
+ *                 DatasetExecutor, ExploreHandler.
  */
 public class MasterServiceMain extends DaemonMain {
   private static final Logger LOG = LoggerFactory.getLogger(MasterServiceMain.class);
@@ -450,7 +451,7 @@ public class MasterServiceMain extends DaemonMain {
         if (secureStoreUpdateCancellable != null) {
           secureStoreUpdateCancellable.cancel();
         }
-        // If the master process has been explcitly stopped, stop the twill application as well.
+        // If the master process has been explicitly stopped, stop the twill application as well.
         if (shouldTerminateApp) {
           LOG.info("Stopping master twill application");
           TwillController twillController = controller.get();
@@ -501,19 +502,19 @@ public class MasterServiceMain extends DaemonMain {
    */
   private void checkExploreRequirements() {
     if (cConf.getBoolean(Constants.Explore.EXPLORE_ENABLED)) {
-      // This check will throw an exception if Hive is not present or if it's distribution is unsupported
+      // This check will throw an exception if Hive is not present or if its distribution is unsupported
       ExploreServiceUtils.checkHiveSupport();
     }
   }
 
   /**
-   * Performs kerbose login if security is enabled.
+   * Performs Kerberos login if security is enabled.
    */
   private void login(CConfiguration cConf) {
     try {
       SecurityUtil.loginForMasterService(cConf);
     } catch (Exception e) {
-      LOG.error("Failed to login as CDAP user", e);
+      LOG.error("Failed to login for master service", e);
       throw Throwables.propagate(e);
     }
   }
@@ -531,7 +532,7 @@ public class MasterServiceMain extends DaemonMain {
   }
 
   /**
-   * The transaction coprocessors (0.94 and 0.96 versions of {@code DefaultTransactionProcessor}) need access
+   * The transaction coprocessors (0.96 version of {@code DefaultTransactionProcessor}) need access
    * to CConfiguration values in order to load transaction snapshots for data cleanup.
    */
   private void updateConfigurationTable() {
@@ -607,7 +608,7 @@ public class MasterServiceMain extends DaemonMain {
   }
 
   /**
-   * Returns the {@link TwillController} for the current master service or {@code null} if none is running.
+   * Returns the {@link TwillController} for the current master service or {@code null} if none are running.
    */
   @Nullable
   private TwillController getCurrentTwillController(TwillRunnerService twillRunner) {

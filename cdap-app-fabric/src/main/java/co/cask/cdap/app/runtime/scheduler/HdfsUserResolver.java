@@ -63,6 +63,7 @@ public class HdfsUserResolver {
       return namespaceUserSetting;
     }
 
+    // the SecurityRequestContext in here won't work for SchedulerTaskRunner#run()
     String requestUserId = SecurityRequestContext.getUserId();
     if (!Strings.isNullOrEmpty(requestUserId)) {
       return requestUserId;

@@ -51,6 +51,8 @@ public final class HBaseTokenUtils {
       Token<? extends TokenIdentifier> token = castToken(method.invoke(null, hConf));
       credentials.addToken(token.getService(), token);
 
+      // OK to log, it won't log the credential, only information about the token.
+      LOG.info("Added HBase delegation token: {}", token);
       return credentials;
 
     } catch (Exception e) {

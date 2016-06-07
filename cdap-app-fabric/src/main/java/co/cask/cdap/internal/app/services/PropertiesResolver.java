@@ -57,7 +57,6 @@ public class PropertiesResolver {
   public Map<String, String> getSystemProperties(Id.Program id) {
     Map<String, String> systemArgs = Maps.newHashMap();
 
-    // the SecurityRequestContext in here won't work for SchedulerTaskRunner#run()
     systemArgs.put(Constants.CFG_HDFS_USER, hdfsUserResolver.getHdfsUser(id.getNamespace()));
 
     systemArgs.put(Constants.AppFabric.APP_SCHEDULER_QUEUE, queueResolver.getQueue(id.getNamespace()));

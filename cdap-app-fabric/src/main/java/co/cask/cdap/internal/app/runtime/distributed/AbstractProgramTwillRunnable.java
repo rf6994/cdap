@@ -13,6 +13,7 @@
  * License for the specific language governing permissions and limitations under
  * the License.
  */
+
 package co.cask.cdap.internal.app.runtime.distributed;
 
 import co.cask.cdap.api.app.ApplicationSpecification;
@@ -292,12 +293,11 @@ public abstract class AbstractProgramTwillRunnable<T extends ProgramRunner> impl
 
   @Override
   public void run() {
-    LOG.info("Starting metrics service");
+    LOG.info("Starting runnable: {}", name);
     Futures.getUnchecked(
       Services.chainStart(zkClientService, kafkaClientService,
                           metricsCollectionService, streamCoordinatorClient, resourceReporter));
 
-    LOG.info("Starting runnable: {}", name);
     controller = programRunner.run(program, programOpts);
     final SettableFuture<ProgramController.State> state = SettableFuture.create();
     controller.addListener(new AbstractListener() {

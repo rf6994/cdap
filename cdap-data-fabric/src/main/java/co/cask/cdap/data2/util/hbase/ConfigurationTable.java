@@ -34,6 +34,7 @@ import org.apache.hadoop.hbase.client.Result;
 
 import java.io.IOException;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 /**
  * Reads and writes current {@link CConfiguration} to a table in HBase.  This make the configuration available
@@ -106,7 +107,7 @@ public class ConfigurationTable {
         try {
           table.close();
         } catch (IOException ioe) {
-          LOG.error("Error closing HBaseAdmin: " + ioe.getMessage(), ioe);
+          LOG.error("Error closing HTable: ", ioe);
         }
       }
     }
@@ -119,9 +120,10 @@ public class ConfigurationTable {
    * @param sysConfigTablePrefix table prefix of the configuration table. (The full table name of the configuration
    *                             table minus the table qualifier). Example: 'cdap.system:'
    * @return The {@link CConfiguration} instance populated with the stored values, or {@code null} if no row
-   *         was found for the given type.
+   *         was found for the given type or if there were errors reading from the table.
    * @throws IOException If an error occurs while attempting to read the table or the table does not exist.
    */
+  @Nullable
   public CConfiguration read(Type type, String sysConfigTablePrefix) throws IOException {
     String tableName = sysConfigTablePrefix + TABLE_NAME;
     HTable table = null;

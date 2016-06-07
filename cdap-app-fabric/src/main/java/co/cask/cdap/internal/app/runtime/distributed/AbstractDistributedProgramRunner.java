@@ -32,6 +32,7 @@ import co.cask.cdap.data2.util.hbase.HBaseTableUtilFactory;
 import co.cask.cdap.internal.app.ApplicationSpecificationAdapter;
 import co.cask.cdap.internal.app.runtime.BasicArguments;
 import co.cask.cdap.internal.app.runtime.ProgramOptionConstants;
+import co.cask.cdap.internal.app.runtime.ProgramRunners;
 import co.cask.cdap.internal.app.runtime.SimpleProgramOptions;
 import co.cask.cdap.internal.app.runtime.codec.ArgumentsCodec;
 import co.cask.cdap.internal.app.runtime.codec.ProgramOptionsCodec;
@@ -76,6 +77,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nullable;
 
@@ -168,7 +170,7 @@ public abstract class AbstractDistributedProgramRunner implements ProgramRunner 
         LOG.info("Setting scheduler queue to {}", schedulerQueueName);
       }
 
-      Map<String, LocalizeResource> localizeResources = new HashMap<>();
+      final Map<String, LocalizeResource> localizeResources = new HashMap<>();
       final ProgramOptions options = addArtifactPluginFiles(oldOptions, localizeResources,
                                                             DirUtils.createTempDir(tempDir));
 
@@ -193,9 +195,24 @@ public abstract class AbstractDistributedProgramRunner implements ProgramRunner 
       final URI logbackURI = getLogBackURI(program, tempDir);
       final String programOptions = GSON.toJson(options);
 
-      // Obtains and add the HBase delegation token as well (if in non-secure mode, it's a no-op)
+      // Obtains and adds the HBase delegation token as well (if in non-secure mode, it's a no-op)
       // Twill would also ignore it if it is not running in secure mode.
       // The HDFS token should already obtained by Twill.
+
+
+      LOG.info("Version 000201");
+      LOG.info("Options#CFG_HDFS_USER: {}", options.getArguments().getOption(Constants.CFG_HDFS_USER));
+
+//      String keytabPath = cConf.get(Constants.Security.CFG_CDAP_MASTER_KRB_KEYTAB_PATH);
+      String keytabPath = "/tmp/new.keytab";
+      String user = "ali/secure-autobuild-v29908-1000.dev.continuuity.net@CONTINUUITY.NET";
+      UserGroupInformation aliUGI = UserGroupInformation.loginUserFromKeytabAndReturnUGI(user, keytabPath);
+
+      return ProgramRunners.runAsUGI(aliUGI, new Callable<ProgramController>() {
+        @Override
+        public ProgramController call() throws Exception {
+
+
       return launch(program, options, localizeResources, tempDir, new ApplicationLauncher() {
         @Override
         public TwillController launch(TwillApplication twillApplication, Iterable<String> extraClassPaths,
@@ -208,10 +225,10 @@ public abstract class AbstractDistributedProgramRunner implements ProgramRunner 
           // so it can't be unset by Spark
           twillPreparer.withEnv(Collections.singletonMap("SPARK_YARN_MODE", "true"));
           if (options.isDebug()) {
-            LOG.info("Starting {} with debugging enabled, programOptions: {}, and logback: {}",
-                     program.getId(), programOptions, logbackURI);
             twillPreparer.enableDebugging();
           }
+          LOG.info("Starting {} with debugging enabled: {}, programOptions: {}, and logback: {}",
+                   program.getId(), options.isDebug(), programOptions, logbackURI);
           // Add scheduler queue name if defined
           if (schedulerQueueName != null && !schedulerQueueName.isEmpty()) {
             LOG.info("Setting scheduler queue for app {} as {}", program.getId(), schedulerQueueName);
@@ -290,6 +307,11 @@ public abstract class AbstractDistributedProgramRunner implements ProgramRunner 
           return addCleanupListener(twillController, program, tempDir);
         }
       });
+
+
+        }
+      });
+
     } catch (Exception e) {
       deleteDirectory(tempDir);
       throw Throwables.propagate(e);
@@ -362,7 +384,7 @@ public abstract class AbstractDistributedProgramRunner implements ProgramRunner 
   }
 
   private File saveCConf(CConfiguration conf, File file) throws IOException {
-    // Unsettting the runtime extension directory as the necessary extension jars should be shipped to the container
+    // Unsetting the runtime extension directory as the necessary extension jars should be shipped to the container
     // by the distributed ProgramRunner.
     CConfiguration copied = CConfiguration.copy(conf);
     copied.unset(Constants.AppFabric.RUNTIME_EXT_DIR);
