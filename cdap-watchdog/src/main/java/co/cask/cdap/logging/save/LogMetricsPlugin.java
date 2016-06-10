@@ -87,7 +87,6 @@ public class LogMetricsPlugin extends AbstractKafkaLogProcessor {
 
   @Override
   public void doProcess(KafkaLogEvent event) {
-
     LoggingContext context = event.getLoggingContext();
     Map<String, String> tags = LoggingContextHelper.getMetricsTags(context);
     MetricsContext collector = metricsCollectionService.getContext(tags);
@@ -102,7 +101,6 @@ public class LogMetricsPlugin extends AbstractKafkaLogProcessor {
 
     partitionCheckpoints.put(event.getPartition(),
                              new Checkpoint(event.getNextOffset(), event.getLogEvent().getTimeStamp()));
-
   }
 
   private String getMetricName(String namespace, String logLevel) {

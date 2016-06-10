@@ -20,6 +20,7 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.util.StatusPrinter;
 import co.cask.cdap.api.data.schema.Schema;
+import co.cask.cdap.api.metrics.MetricStore;
 import co.cask.cdap.common.conf.CConfiguration;
 import co.cask.cdap.common.conf.Constants;
 import co.cask.cdap.common.logging.ApplicationLoggingContext;
@@ -102,6 +103,7 @@ public class LogSaverPluginTest extends KafkaTestBase {
   private static TransactionManager txManager;
   private static String logBaseDir;
   private static LogSaver logSaver;
+  private static MetricStore metricStore;
   private static String namespaceDir;
   private static KafkaLogAppender appender;
   private static Gson gson;
